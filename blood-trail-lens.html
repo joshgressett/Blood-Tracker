@@ -1,0 +1,1243 @@
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><style>[hidden]{display:none!important}</style></head><body>
+<title>Blood Trail Lens</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Saira+Condensed:wght@600;700&family=Barlow:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>/* required styles */
+
+.leaflet-pane,
+.leaflet-tile,
+.leaflet-marker-icon,
+.leaflet-marker-shadow,
+.leaflet-tile-container,
+.leaflet-pane > svg,
+.leaflet-pane > canvas,
+.leaflet-zoom-box,
+.leaflet-image-layer,
+.leaflet-layer {
+	position: absolute;
+	left: 0;
+	top: 0;
+	}
+.leaflet-container {
+	overflow: hidden;
+	}
+.leaflet-tile,
+.leaflet-marker-icon,
+.leaflet-marker-shadow {
+	-webkit-user-select: none;
+	   -moz-user-select: none;
+	        user-select: none;
+	  -webkit-user-drag: none;
+	}
+/* Prevents IE11 from highlighting tiles in blue */
+.leaflet-tile::selection {
+	background: transparent;
+}
+/* Safari renders non-retina tile on retina better with this, but Chrome is worse */
+.leaflet-safari .leaflet-tile {
+	image-rendering: -webkit-optimize-contrast;
+	}
+/* hack that prevents hw layers "stretching" when loading new tiles */
+.leaflet-safari .leaflet-tile-container {
+	width: 1600px;
+	height: 1600px;
+	-webkit-transform-origin: 0 0;
+	}
+.leaflet-marker-icon,
+.leaflet-marker-shadow {
+	display: block;
+	}
+/* .leaflet-container svg: reset svg max-width decleration shipped in Joomla! (joomla.org) 3.x */
+/* .leaflet-container img: map is broken in FF if you have max-width: 100% on tiles */
+.leaflet-container .leaflet-overlay-pane svg {
+	max-width: none !important;
+	max-height: none !important;
+	}
+.leaflet-container .leaflet-marker-pane img,
+.leaflet-container .leaflet-shadow-pane img,
+.leaflet-container .leaflet-tile-pane img,
+.leaflet-container img.leaflet-image-layer,
+.leaflet-container .leaflet-tile {
+	max-width: none !important;
+	max-height: none !important;
+	width: auto;
+	padding: 0;
+	}
+
+.leaflet-container img.leaflet-tile {
+	/* See: https://bugs.chromium.org/p/chromium/issues/detail?id=600120 */
+	mix-blend-mode: plus-lighter;
+}
+
+.leaflet-container.leaflet-touch-zoom {
+	-ms-touch-action: pan-x pan-y;
+	touch-action: pan-x pan-y;
+	}
+.leaflet-container.leaflet-touch-drag {
+	-ms-touch-action: pinch-zoom;
+	/* Fallback for FF which doesn't support pinch-zoom */
+	touch-action: none;
+	touch-action: pinch-zoom;
+}
+.leaflet-container.leaflet-touch-drag.leaflet-touch-zoom {
+	-ms-touch-action: none;
+	touch-action: none;
+}
+.leaflet-container {
+	-webkit-tap-highlight-color: transparent;
+}
+.leaflet-container a {
+	-webkit-tap-highlight-color: rgba(51, 181, 229, 0.4);
+}
+.leaflet-tile {
+	filter: inherit;
+	visibility: hidden;
+	}
+.leaflet-tile-loaded {
+	visibility: inherit;
+	}
+.leaflet-zoom-box {
+	width: 0;
+	height: 0;
+	-moz-box-sizing: border-box;
+	     box-sizing: border-box;
+	z-index: 800;
+	}
+/* workaround for https://bugzilla.mozilla.org/show_bug.cgi?id=888319 */
+.leaflet-overlay-pane svg {
+	-moz-user-select: none;
+	}
+
+.leaflet-pane         { z-index: 400; }
+
+.leaflet-tile-pane    { z-index: 200; }
+.leaflet-overlay-pane { z-index: 400; }
+.leaflet-shadow-pane  { z-index: 500; }
+.leaflet-marker-pane  { z-index: 600; }
+.leaflet-tooltip-pane   { z-index: 650; }
+.leaflet-popup-pane   { z-index: 700; }
+
+.leaflet-map-pane canvas { z-index: 100; }
+.leaflet-map-pane svg    { z-index: 200; }
+
+.leaflet-vml-shape {
+	width: 1px;
+	height: 1px;
+	}
+.lvml {
+	behavior: url(#default#VML);
+	display: inline-block;
+	position: absolute;
+	}
+
+
+/* control positioning */
+
+.leaflet-control {
+	position: relative;
+	z-index: 800;
+	pointer-events: visiblePainted; /* IE 9-10 doesn't have auto */
+	pointer-events: auto;
+	}
+.leaflet-top,
+.leaflet-bottom {
+	position: absolute;
+	z-index: 1000;
+	pointer-events: none;
+	}
+.leaflet-top {
+	top: 0;
+	}
+.leaflet-right {
+	right: 0;
+	}
+.leaflet-bottom {
+	bottom: 0;
+	}
+.leaflet-left {
+	left: 0;
+	}
+.leaflet-control {
+	float: left;
+	clear: both;
+	}
+.leaflet-right .leaflet-control {
+	float: right;
+	}
+.leaflet-top .leaflet-control {
+	margin-top: 10px;
+	}
+.leaflet-bottom .leaflet-control {
+	margin-bottom: 10px;
+	}
+.leaflet-left .leaflet-control {
+	margin-left: 10px;
+	}
+.leaflet-right .leaflet-control {
+	margin-right: 10px;
+	}
+
+
+/* zoom and fade animations */
+
+.leaflet-fade-anim .leaflet-popup {
+	opacity: 0;
+	-webkit-transition: opacity 0.2s linear;
+	   -moz-transition: opacity 0.2s linear;
+	        transition: opacity 0.2s linear;
+	}
+.leaflet-fade-anim .leaflet-map-pane .leaflet-popup {
+	opacity: 1;
+	}
+.leaflet-zoom-animated {
+	-webkit-transform-origin: 0 0;
+	    -ms-transform-origin: 0 0;
+	        transform-origin: 0 0;
+	}
+svg.leaflet-zoom-animated {
+	will-change: transform;
+}
+
+.leaflet-zoom-anim .leaflet-zoom-animated {
+	-webkit-transition: -webkit-transform 0.25s cubic-bezier(0,0,0.25,1);
+	   -moz-transition:    -moz-transform 0.25s cubic-bezier(0,0,0.25,1);
+	        transition:         transform 0.25s cubic-bezier(0,0,0.25,1);
+	}
+.leaflet-zoom-anim .leaflet-tile,
+.leaflet-pan-anim .leaflet-tile {
+	-webkit-transition: none;
+	   -moz-transition: none;
+	        transition: none;
+	}
+
+.leaflet-zoom-anim .leaflet-zoom-hide {
+	visibility: hidden;
+	}
+
+
+/* cursors */
+
+.leaflet-interactive {
+	cursor: pointer;
+	}
+.leaflet-grab {
+	cursor: -webkit-grab;
+	cursor:    -moz-grab;
+	cursor:         grab;
+	}
+.leaflet-crosshair,
+.leaflet-crosshair .leaflet-interactive {
+	cursor: crosshair;
+	}
+.leaflet-popup-pane,
+.leaflet-control {
+	cursor: auto;
+	}
+.leaflet-dragging .leaflet-grab,
+.leaflet-dragging .leaflet-grab .leaflet-interactive,
+.leaflet-dragging .leaflet-marker-draggable {
+	cursor: move;
+	cursor: -webkit-grabbing;
+	cursor:    -moz-grabbing;
+	cursor:         grabbing;
+	}
+
+/* marker & overlays interactivity */
+.leaflet-marker-icon,
+.leaflet-marker-shadow,
+.leaflet-image-layer,
+.leaflet-pane > svg path,
+.leaflet-tile-container {
+	pointer-events: none;
+	}
+
+.leaflet-marker-icon.leaflet-interactive,
+.leaflet-image-layer.leaflet-interactive,
+.leaflet-pane > svg path.leaflet-interactive,
+svg.leaflet-image-layer.leaflet-interactive path {
+	pointer-events: visiblePainted; /* IE 9-10 doesn't have auto */
+	pointer-events: auto;
+	}
+
+/* visual tweaks */
+
+.leaflet-container {
+	background: #ddd;
+	outline-offset: 1px;
+	}
+.leaflet-container a {
+	color: #0078A8;
+	}
+.leaflet-zoom-box {
+	border: 2px dotted #38f;
+	background: rgba(255,255,255,0.5);
+	}
+
+
+/* general typography */
+.leaflet-container {
+	font-family: "Helvetica Neue", Arial, Helvetica, sans-serif;
+	font-size: 12px;
+	font-size: 0.75rem;
+	line-height: 1.5;
+	}
+
+
+/* general toolbar styles */
+
+.leaflet-bar {
+	box-shadow: 0 1px 5px rgba(0,0,0,0.65);
+	border-radius: 4px;
+	}
+.leaflet-bar a {
+	background-color: #fff;
+	border-bottom: 1px solid #ccc;
+	width: 26px;
+	height: 26px;
+	line-height: 26px;
+	display: block;
+	text-align: center;
+	text-decoration: none;
+	color: black;
+	}
+.leaflet-bar a,
+.leaflet-control-layers-toggle {
+	background-position: 50% 50%;
+	background-repeat: no-repeat;
+	display: block;
+	}
+.leaflet-bar a:hover,
+.leaflet-bar a:focus {
+	background-color: #f4f4f4;
+	}
+.leaflet-bar a:first-child {
+	border-top-left-radius: 4px;
+	border-top-right-radius: 4px;
+	}
+.leaflet-bar a:last-child {
+	border-bottom-left-radius: 4px;
+	border-bottom-right-radius: 4px;
+	border-bottom: none;
+	}
+.leaflet-bar a.leaflet-disabled {
+	cursor: default;
+	background-color: #f4f4f4;
+	color: #bbb;
+	}
+
+.leaflet-touch .leaflet-bar a {
+	width: 30px;
+	height: 30px;
+	line-height: 30px;
+	}
+.leaflet-touch .leaflet-bar a:first-child {
+	border-top-left-radius: 2px;
+	border-top-right-radius: 2px;
+	}
+.leaflet-touch .leaflet-bar a:last-child {
+	border-bottom-left-radius: 2px;
+	border-bottom-right-radius: 2px;
+	}
+
+/* zoom control */
+
+.leaflet-control-zoom-in,
+.leaflet-control-zoom-out {
+	font: bold 18px 'Lucida Console', Monaco, monospace;
+	text-indent: 1px;
+	}
+
+.leaflet-touch .leaflet-control-zoom-in, .leaflet-touch .leaflet-control-zoom-out  {
+	font-size: 22px;
+	}
+
+
+/* layers control */
+
+.leaflet-control-layers {
+	box-shadow: 0 1px 5px rgba(0,0,0,0.4);
+	background: #fff;
+	border-radius: 5px;
+	}
+.leaflet-control-layers-toggle {
+	background-image: url(images/layers.png);
+	width: 36px;
+	height: 36px;
+	}
+.leaflet-retina .leaflet-control-layers-toggle {
+	background-image: url(images/layers-2x.png);
+	background-size: 26px 26px;
+	}
+.leaflet-touch .leaflet-control-layers-toggle {
+	width: 44px;
+	height: 44px;
+	}
+.leaflet-control-layers .leaflet-control-layers-list,
+.leaflet-control-layers-expanded .leaflet-control-layers-toggle {
+	display: none;
+	}
+.leaflet-control-layers-expanded .leaflet-control-layers-list {
+	display: block;
+	position: relative;
+	}
+.leaflet-control-layers-expanded {
+	padding: 6px 10px 6px 6px;
+	color: #333;
+	background: #fff;
+	}
+.leaflet-control-layers-scrollbar {
+	overflow-y: scroll;
+	overflow-x: hidden;
+	padding-right: 5px;
+	}
+.leaflet-control-layers-selector {
+	margin-top: 2px;
+	position: relative;
+	top: 1px;
+	}
+.leaflet-control-layers label {
+	display: block;
+	font-size: 13px;
+	font-size: 1.08333em;
+	}
+.leaflet-control-layers-separator {
+	height: 0;
+	border-top: 1px solid #ddd;
+	margin: 5px -10px 5px -6px;
+	}
+
+/* Default icon URLs */
+.leaflet-default-icon-path { /* used only in path-guessing heuristic, see L.Icon.Default */
+	background-image: url(images/marker-icon.png);
+	}
+
+
+/* attribution and scale controls */
+
+.leaflet-container .leaflet-control-attribution {
+	background: #fff;
+	background: rgba(255, 255, 255, 0.8);
+	margin: 0;
+	}
+.leaflet-control-attribution,
+.leaflet-control-scale-line {
+	padding: 0 5px;
+	color: #333;
+	line-height: 1.4;
+	}
+.leaflet-control-attribution a {
+	text-decoration: none;
+	}
+.leaflet-control-attribution a:hover,
+.leaflet-control-attribution a:focus {
+	text-decoration: underline;
+	}
+.leaflet-attribution-flag {
+	display: inline !important;
+	vertical-align: baseline !important;
+	width: 1em;
+	height: 0.6669em;
+	}
+.leaflet-left .leaflet-control-scale {
+	margin-left: 5px;
+	}
+.leaflet-bottom .leaflet-control-scale {
+	margin-bottom: 5px;
+	}
+.leaflet-control-scale-line {
+	border: 2px solid #777;
+	border-top: none;
+	line-height: 1.1;
+	padding: 2px 5px 1px;
+	white-space: nowrap;
+	-moz-box-sizing: border-box;
+	     box-sizing: border-box;
+	background: rgba(255, 255, 255, 0.8);
+	text-shadow: 1px 1px #fff;
+	}
+.leaflet-control-scale-line:not(:first-child) {
+	border-top: 2px solid #777;
+	border-bottom: none;
+	margin-top: -2px;
+	}
+.leaflet-control-scale-line:not(:first-child):not(:last-child) {
+	border-bottom: 2px solid #777;
+	}
+
+.leaflet-touch .leaflet-control-attribution,
+.leaflet-touch .leaflet-control-layers,
+.leaflet-touch .leaflet-bar {
+	box-shadow: none;
+	}
+.leaflet-touch .leaflet-control-layers,
+.leaflet-touch .leaflet-bar {
+	border: 2px solid rgba(0,0,0,0.2);
+	background-clip: padding-box;
+	}
+
+
+/* popup */
+
+.leaflet-popup {
+	position: absolute;
+	text-align: center;
+	margin-bottom: 20px;
+	}
+.leaflet-popup-content-wrapper {
+	padding: 1px;
+	text-align: left;
+	border-radius: 12px;
+	}
+.leaflet-popup-content {
+	margin: 13px 24px 13px 20px;
+	line-height: 1.3;
+	font-size: 13px;
+	font-size: 1.08333em;
+	min-height: 1px;
+	}
+.leaflet-popup-content p {
+	margin: 17px 0;
+	margin: 1.3em 0;
+	}
+.leaflet-popup-tip-container {
+	width: 40px;
+	height: 20px;
+	position: absolute;
+	left: 50%;
+	margin-top: -1px;
+	margin-left: -20px;
+	overflow: hidden;
+	pointer-events: none;
+	}
+.leaflet-popup-tip {
+	width: 17px;
+	height: 17px;
+	padding: 1px;
+
+	margin: -10px auto 0;
+	pointer-events: auto;
+
+	-webkit-transform: rotate(45deg);
+	   -moz-transform: rotate(45deg);
+	    -ms-transform: rotate(45deg);
+	        transform: rotate(45deg);
+	}
+.leaflet-popup-content-wrapper,
+.leaflet-popup-tip {
+	background: white;
+	color: #333;
+	box-shadow: 0 3px 14px rgba(0,0,0,0.4);
+	}
+.leaflet-container a.leaflet-popup-close-button {
+	position: absolute;
+	top: 0;
+	right: 0;
+	border: none;
+	text-align: center;
+	width: 24px;
+	height: 24px;
+	font: 16px/24px Tahoma, Verdana, sans-serif;
+	color: #757575;
+	text-decoration: none;
+	background: transparent;
+	}
+.leaflet-container a.leaflet-popup-close-button:hover,
+.leaflet-container a.leaflet-popup-close-button:focus {
+	color: #585858;
+	}
+.leaflet-popup-scrolled {
+	overflow: auto;
+	}
+
+.leaflet-oldie .leaflet-popup-content-wrapper {
+	-ms-zoom: 1;
+	}
+.leaflet-oldie .leaflet-popup-tip {
+	width: 24px;
+	margin: 0 auto;
+
+	-ms-filter: "progid:DXImageTransform.Microsoft.Matrix(M11=0.70710678, M12=0.70710678, M21=-0.70710678, M22=0.70710678)";
+	filter: progid:DXImageTransform.Microsoft.Matrix(M11=0.70710678, M12=0.70710678, M21=-0.70710678, M22=0.70710678);
+	}
+
+.leaflet-oldie .leaflet-control-zoom,
+.leaflet-oldie .leaflet-control-layers,
+.leaflet-oldie .leaflet-popup-content-wrapper,
+.leaflet-oldie .leaflet-popup-tip {
+	border: 1px solid #999;
+	}
+
+
+/* div icon */
+
+.leaflet-div-icon {
+	background: #fff;
+	border: 1px solid #666;
+	}
+
+
+/* Tooltip */
+/* Base styles for the element that has a tooltip */
+.leaflet-tooltip {
+	position: absolute;
+	padding: 6px;
+	background-color: #fff;
+	border: 1px solid #fff;
+	border-radius: 3px;
+	color: #222;
+	white-space: nowrap;
+	-webkit-user-select: none;
+	-moz-user-select: none;
+	-ms-user-select: none;
+	user-select: none;
+	pointer-events: none;
+	box-shadow: 0 1px 3px rgba(0,0,0,0.4);
+	}
+.leaflet-tooltip.leaflet-interactive {
+	cursor: pointer;
+	pointer-events: auto;
+	}
+.leaflet-tooltip-top:before,
+.leaflet-tooltip-bottom:before,
+.leaflet-tooltip-left:before,
+.leaflet-tooltip-right:before {
+	position: absolute;
+	pointer-events: none;
+	border: 6px solid transparent;
+	background: transparent;
+	content: "";
+	}
+
+/* Directions */
+
+.leaflet-tooltip-bottom {
+	margin-top: 6px;
+}
+.leaflet-tooltip-top {
+	margin-top: -6px;
+}
+.leaflet-tooltip-bottom:before,
+.leaflet-tooltip-top:before {
+	left: 50%;
+	margin-left: -6px;
+	}
+.leaflet-tooltip-top:before {
+	bottom: 0;
+	margin-bottom: -12px;
+	border-top-color: #fff;
+	}
+.leaflet-tooltip-bottom:before {
+	top: 0;
+	margin-top: -12px;
+	margin-left: -6px;
+	border-bottom-color: #fff;
+	}
+.leaflet-tooltip-left {
+	margin-left: -6px;
+}
+.leaflet-tooltip-right {
+	margin-left: 6px;
+}
+.leaflet-tooltip-left:before,
+.leaflet-tooltip-right:before {
+	top: 50%;
+	margin-top: -6px;
+	}
+.leaflet-tooltip-left:before {
+	right: 0;
+	margin-right: -12px;
+	border-left-color: #fff;
+	}
+.leaflet-tooltip-right:before {
+	left: 0;
+	margin-left: -12px;
+	border-right-color: #fff;
+	}
+
+/* Printing */
+
+@media print {
+	/* Prevent printers from removing background-images of controls. */
+	.leaflet-control {
+		-webkit-print-color-adjust: exact;
+		print-color-adjust: exact;
+		}
+	}
+</style>
+<style>
+/* Layout: one-screen field tool — header + Scan/Map switch, viewport on top, readouts, thumb-reach controls below. Single dark look, built for dusk in the woods. */
+:root{
+  --ground:#070b14;
+  --panel:#0f1626;
+  --line:#1f2a40;
+  --ink:#dfe6f3;
+  --muted:#7f8aa3;
+  --blood:#ff2d3d;
+  --scan:#2b4fd6;
+  --you:#46a8ff;
+  --ok:#4fd18b;
+  --warn:#f2b53a;
+  --display:"Saira Condensed","Arial Narrow",system-ui,sans-serif;
+  --body:"Barlow",system-ui,-apple-system,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  color-scheme:dark;
+}
+html,body{height:100%}
+body{background:var(--ground);color:var(--ink);font:15px/1.45 var(--body);margin:0}
+.app{max-width:560px;margin:0 auto;padding-inline:16px;padding-block:12px 24px;display:flex;flex-direction:column;gap:12px}
+header{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+h1{font:700 26px/1 var(--display);letter-spacing:.02em;text-transform:uppercase;margin:0}
+h1 span{color:var(--blood)}
+.tabs{display:flex;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:3px;gap:3px}
+.tabs button{padding:7px 16px;border:0;background:transparent;font-size:13px;letter-spacing:.06em;text-transform:uppercase}
+.tabs button.on{background:#14204a;color:var(--ink)}
+.mode{font:500 11px var(--mono);color:var(--muted);letter-spacing:.08em;text-transform:uppercase}
+
+.view{position:relative;background:#000;border:1px solid var(--line);border-radius:14px;overflow:hidden;aspect-ratio:3/4;max-width:100%}
+canvas#out{width:100%;height:100%;object-fit:cover;display:block}
+.alert{position:absolute;left:50%;top:12px;transform:translateX(-50%);background:rgba(7,11,20,.82);border:1px solid var(--blood);color:var(--ink);border-radius:999px;padding:6px 14px;font:600 14px var(--body);display:flex;gap:8px;align-items:center;white-space:nowrap;z-index:500}
+.alert i{width:9px;height:9px;border-radius:50%;background:var(--blood);box-shadow:0 0 10px var(--blood)}
+.badge{position:absolute;left:12px;bottom:12px;font:500 11px var(--mono);color:var(--muted);background:rgba(7,11,20,.8);padding:4px 8px;border-radius:6px;letter-spacing:.05em;z-index:500}
+.reticle{position:absolute;inset:18%;border:1px dashed rgba(127,138,163,.35);border-radius:8px;pointer-events:none}
+
+.readout{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.cell{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:8px 10px;min-width:0}
+.cell b{display:block;font:500 18px var(--mono);font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#paneMap .cell b{font-size:15px}
+#mapBadge{bottom:40px}
+.cell small{font-size:11px;color:var(--muted);letter-spacing:.08em;text-transform:uppercase}
+.cell.hot b{color:var(--blood)}
+
+.src{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+button,.filebtn{font:600 14px var(--body);color:var(--ink);background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 8px;cursor:pointer;text-align:center;display:flex;align-items:center;justify-content:center;gap:6px;position:relative}
+button:focus-visible,.filebtn:focus-within,input:focus-visible{outline:2px solid var(--scan);outline-offset:2px}
+button.on{border-color:var(--scan);background:#14204a}
+button.mark{background:var(--blood);border-color:var(--blood);color:#fff;font-size:15px}
+button:disabled{opacity:.4;cursor:not-allowed}
+.filebtn input{position:absolute;width:1px;height:1px;opacity:0}
+
+.ctl{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:12px}
+.row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.row > *{min-width:0}
+.row label{font-size:12px;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;min-width:84px}
+input[type=range]{flex:1;accent-color:var(--blood);min-width:140px}
+.val{font:500 13px var(--mono);width:28px;text-align:right}
+.chips{display:flex;gap:6px;flex:1}
+.chips button{flex:1;padding:8px 4px;font-size:13px}
+.grow{flex:1}
+.grow2{flex:2}
+
+/* map */
+#map{position:absolute;inset:0;background:
+  linear-gradient(var(--line) 1px,transparent 1px) 0 0/40px 40px,
+  linear-gradient(90deg,var(--line) 1px,transparent 1px) 0 0/40px 40px,#0b1120}
+.leaflet-container{font:12px var(--body)}
+.leaflet-control-attribution{background:rgba(7,11,20,.7)!important;color:var(--muted)!important;font-size:10px}
+.leaflet-control-attribution a{color:var(--muted)!important}
+.leaflet-bar a{background:var(--panel)!important;color:var(--ink)!important;border-color:var(--line)!important}
+.leaflet-popup-content-wrapper,.leaflet-popup-tip{background:var(--panel);color:var(--ink)}
+.layers{position:absolute;right:10px;top:10px;z-index:500;display:flex;flex-direction:column;gap:6px}
+.layers button{padding:6px 10px;font-size:12px;background:rgba(15,22,38,.9)}
+.recenter{position:absolute;right:10px;bottom:24px;z-index:500;padding:8px 12px;font-size:12px;background:rgba(15,22,38,.9)}
+.pin{width:14px;height:14px;border-radius:50%;border:2px solid #fff;box-shadow:0 0 0 1px rgba(0,0,0,.5)}
+.pin.blood{background:var(--blood)}
+.pin.hit{background:var(--warn);width:18px;height:18px;border-radius:3px;transform:rotate(45deg)}
+.pin.lost{background:#8a94a8}
+.pin.found{background:var(--ok);width:20px;height:20px}
+.me{width:16px;height:16px;border-radius:50%;background:var(--you);border:3px solid #fff;box-shadow:0 0 0 6px rgba(70,168,255,.25)}
+.gps{font:500 12px var(--mono);color:var(--muted)}
+.gps.live{color:var(--ok)}
+
+.marks h2{font:700 16px var(--display);text-transform:uppercase;letter-spacing:.04em;margin:0 0 6px}
+.marks ol{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:6px}
+.marks li{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:10px;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:8px 10px;font:500 12px var(--mono);font-variant-numeric:tabular-nums}
+.marks li .t{color:var(--ink)}
+.marks li .c{color:var(--muted);text-align:right;overflow-wrap:anywhere}
+.dot{width:10px;height:10px;border-radius:50%}
+.dot.blood{background:var(--blood)} .dot.hit{background:var(--warn);border-radius:2px} .dot.lost{background:#8a94a8} .dot.found{background:var(--ok)}
+.empty{color:var(--muted);font-size:13px;margin:0}
+.note{font-size:12px;color:var(--muted);line-height:1.5;margin:0}
+.confirm{display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:13px}
+.confirm button{padding:8px 12px}
+.danger{border-color:var(--blood)!important;color:var(--blood)}
+@media (prefers-reduced-motion:no-preference){.alert i{animation:pulse 1s infinite}}
+@keyframes pulse{50%{opacity:.35}}
+</style>
+
+<div class="app">
+  <header>
+    <h1>Blood <span>Trail</span> Lens</h1>
+    <div class="tabs" role="tablist">
+      <button type="button" id="tabScan" class="on" role="tab">Scan</button>
+      <button type="button" id="tabMap" role="tab">Map</button>
+    </div>
+  </header>
+
+  <!-- ============ SCAN ============ -->
+  <section id="paneScan" style="display:flex;flex-direction:column;gap:12px">
+    <div class="view">
+      <canvas id="out"></canvas>
+      <div class="reticle"></div>
+      <div class="alert" id="alert" hidden><i></i>Blood detected</div>
+      <div class="badge" id="badge">EXAMPLE · leaf litter w/ drops</div>
+    </div>
+    <div class="readout">
+      <div class="cell" id="cHit"><b id="hit">0</b><small>Red px</small></div>
+      <div class="cell"><b id="cov">0.00%</b><small>Coverage</small></div>
+      <div class="cell"><b id="modeLbl">Sample</b><small>Source</small></div>
+    </div>
+    <div class="src">
+      <button id="btnLive" type="button">Live cam</button>
+      <label class="filebtn">Photo<input id="inPhoto" type="file" accept="image/*" capture="environment"></label>
+      <label class="filebtn">Video<input id="inVideo" type="file" accept="video/*"></label>
+    </div>
+    <div class="ctl">
+      <div class="row">
+        <label for="sens">Sensitivity</label>
+        <input id="sens" type="range" min="1" max="10" value="5">
+        <span class="val" id="sensV">5</span>
+      </div>
+      <div class="row">
+        <label>Background</label>
+        <div class="chips" id="chips">
+          <button type="button" data-p="blue" class="on">Blue</button>
+          <button type="button" data-p="green">Green</button>
+          <button type="button" data-p="gray">Gray</button>
+          <button type="button" data-p="off">Off</button>
+        </div>
+      </div>
+      <div class="row">
+        <button id="btnTorch" type="button" class="grow" disabled>Light</button>
+        <button id="btnFreeze" type="button" class="grow">Freeze</button>
+        <button id="btnMark" class="mark grow2" type="button">+ Mark blood</button>
+      </div>
+    </div>
+    <p class="note" id="note">Red, saturated pixels stay red; everything else drops to a dark blue luminance map. Brown leaves are rejected by hue and saturation, but red leaves, berries and orange flagging tape can still trigger it. Raise sensitivity for dark, dried blood; lower it if leaves light up.</p>
+  </section>
+
+  <!-- ============ MAP ============ -->
+  <section id="paneMap" hidden style="flex-direction:column;gap:12px">
+    <div class="view">
+      <div id="map"></div>
+      <div class="layers" id="layers">
+        <button type="button" data-l="sat" class="on">Satellite</button>
+        <button type="button" data-l="topo">Topo</button>
+      </div>
+      <button type="button" class="recenter" id="btnCenter">Fit trail</button>
+      <div class="badge" id="mapBadge" hidden>EXAMPLE TRAIL</div>
+    </div>
+    <div class="readout">
+      <div class="cell"><b id="dHit">—</b><small>From hit site</small></div>
+      <div class="cell"><b id="dTrail">—</b><small>Blood trail</small></div>
+      <div class="cell"><b id="dLast">—</b><small>Last blood</small></div>
+    </div>
+    <div class="ctl">
+      <div class="row">
+        <span class="gps" id="gpsLbl">GPS off</span>
+        <button type="button" id="btnTrack" class="grow">Start tracking</button>
+      </div>
+      <div class="row">
+        <button type="button" class="grow" data-mark="hit">Hit site</button>
+        <button type="button" class="grow" data-mark="lost">Lost blood</button>
+        <button type="button" class="grow" data-mark="found">Recovered</button>
+      </div>
+      <div class="row">
+        <button type="button" class="mark grow" data-mark="blood">+ Mark blood here</button>
+      </div>
+      <div class="row">
+        <button type="button" class="grow" id="btnGpx">Export GPX</button>
+        <button type="button" class="grow" id="btnClear">Clear trail</button>
+      </div>
+      <div class="confirm" id="confirmBox" hidden>
+        <span>Delete every mark and your walked path?</span>
+        <button type="button" class="danger" id="btnClearYes">Delete</button>
+        <button type="button" id="btnClearNo">Keep</button>
+      </div>
+      <p class="note" id="gpxMsg" hidden></p>
+    </div>
+  </section>
+
+  <section class="marks">
+    <h2>Trail marks</h2>
+    <ol id="list"></ol>
+    <p class="empty" id="emptyMsg">Set the hit site, then tap “Mark blood” at each spot of sign. Each mark saves time and GPS, and shows on the map.</p>
+  </section>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+
+  /* =========================================================
+     SHARED TRAIL STATE (saved on this phone so a reload in the woods keeps it)
+     ========================================================= */
+  const KEY = 'btl-trail-v1';
+  const LABEL = { blood: 'Blood', hit: 'Hit site', lost: 'Lost blood', found: 'Recovered' };
+  let trail = { marks: [], path: [], example: false };
+  try { const s = JSON.parse(localStorage.getItem(KEY) || 'null'); if (s && Array.isArray(s.marks)) trail = s; } catch (e) {}
+  function save() { try { localStorage.setItem(KEY, JSON.stringify(trail)); } catch (e) {} }
+
+  // Example trail (clearly labeled) so the map shows what it does before first use.
+  function exampleTrail() {
+    const base = [35.5905, -78.3392], t0 = Date.now() - 52 * 60000;
+    const steps = [[0, 0, 'hit'], [14, 9, 'blood'], [29, 15, 'blood'], [41, 30, 'blood'], [50, 52, 'blood'], [58, 70, 'lost'], [76, 64, 'blood'], [95, 78, 'blood'], [110, 101, 'found']];
+    const m = steps.map(([n, e, type], i) => ({ type, lat: base[0] + n / 111320, lon: base[1] + e / (111320 * Math.cos(base[0] * Math.PI / 180)), acc: 5, t: t0 + i * 6 * 60000 }));
+    return { marks: m, path: m.map(x => [x.lat, x.lon, x.t]), example: true };
+  }
+  if (!trail.marks.length && !trail.path.length) trail = exampleTrail();
+  function dropExample() { if (trail.example) trail = { marks: [], path: [], example: false }; }
+
+  /* =========================================================
+     GEO MATH
+     ========================================================= */
+  function dist(a, b) {
+    const R = 6371000, r = Math.PI / 180;
+    const dLa = (b[0] - a[0]) * r, dLo = (b[1] - a[1]) * r;
+    const h = Math.sin(dLa / 2) ** 2 + Math.cos(a[0] * r) * Math.cos(b[0] * r) * Math.sin(dLo / 2) ** 2;
+    return 2 * R * Math.asin(Math.sqrt(h));
+  }
+  function bearing(a, b) {
+    const r = Math.PI / 180, y = Math.sin((b[1] - a[1]) * r) * Math.cos(b[0] * r);
+    const x = Math.cos(a[0] * r) * Math.sin(b[0] * r) - Math.sin(a[0] * r) * Math.cos(b[0] * r) * Math.cos((b[1] - a[1]) * r);
+    const d = (Math.atan2(y, x) / r + 360) % 360;
+    return ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'][Math.round(d / 45) % 8];
+  }
+  const yd = m => Math.round(m * 1.0936);
+  const fmtYd = m => yd(m).toLocaleString() + ' yd';
+  const fmtAgo = t => { const m = Math.round((Date.now() - t) / 60000); return m < 1 ? 'now' : m < 60 ? m + ' min' : Math.floor(m / 60) + 'h ' + (m % 60) + 'm'; };
+  const fmtTime = t => new Date(t).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+
+  /* =========================================================
+     GPS
+     ========================================================= */
+  let pos = null, watchId = null;
+  function setGps(txt, live) { $('gpsLbl').textContent = txt; $('gpsLbl').classList.toggle('live', !!live); }
+  function onPos(p) {
+    pos = { lat: p.coords.latitude, lon: p.coords.longitude, acc: p.coords.accuracy, t: Date.now() };
+    setGps('GPS ±' + Math.round(pos.acc) + ' m', true);
+    if (watchId !== null && !trail.example) {
+      const last = trail.path[trail.path.length - 1];
+      if (pos.acc < 40 && (!last || dist(last, [pos.lat, pos.lon]) > 3)) { trail.path.push([pos.lat, pos.lon, pos.t]); save(); }
+    }
+    drawMap(false); stats();
+  }
+  function onErr(e) {
+    setGps(e && e.code === 1 ? 'GPS blocked' : 'No GPS fix', false);
+    if (watchId !== null) { navigator.geolocation.clearWatch(watchId); watchId = null; $('btnTrack').textContent = 'Start tracking'; $('btnTrack').classList.remove('on'); }
+  }
+  function startWatch() {
+    if (!navigator.geolocation) { onErr({ code: 2 }); return; }
+    setGps('Finding GPS…');
+    try { watchId = navigator.geolocation.watchPosition(onPos, onErr, { enableHighAccuracy: true, maximumAge: 2000, timeout: 20000 }); }
+    catch (e) { onErr({ code: 1 }); return; }
+    $('btnTrack').textContent = 'Stop tracking'; $('btnTrack').classList.add('on');
+  }
+  $('btnTrack').onclick = () => {
+    if (watchId !== null) { navigator.geolocation.clearWatch(watchId); watchId = null; $('btnTrack').textContent = 'Start tracking'; $('btnTrack').classList.remove('on'); setGps(pos ? 'Paused' : 'GPS off'); return; }
+    if (trail.example) { dropExample(); save(); renderAll(true); }
+    startWatch();
+  };
+
+  function addMark(type) {
+    dropExample();
+    const m = { type, t: Date.now() };
+    const fresh = pos && Date.now() - pos.t < 15000;
+    if (fresh) { m.lat = pos.lat; m.lon = pos.lon; m.acc = pos.acc; }
+    trail.marks.push(m); save(); renderAll(true);
+    if (navigator.vibrate) { try { navigator.vibrate([30, 40, 30]); } catch (e) {} }
+    if (!fresh && navigator.geolocation) {
+      try {
+        navigator.geolocation.getCurrentPosition(p => {
+          m.lat = p.coords.latitude; m.lon = p.coords.longitude; m.acc = p.coords.accuracy;
+          pos = { lat: m.lat, lon: m.lon, acc: m.acc, t: Date.now() };
+          save(); renderAll(true);
+        }, onErr, { enableHighAccuracy: true, timeout: 10000 });
+      } catch (e) {}
+    }
+  }
+  document.querySelectorAll('[data-mark]').forEach(b => b.onclick = () => addMark(b.dataset.mark));
+  $('btnMark').onclick = () => addMark('blood');
+
+  /* =========================================================
+     MAP
+     ========================================================= */
+  let map = null, layers = {}, grp = null, meMk = null, meCirc = null, fitted = false;
+  function initMap() {
+    if (map || !window.L) return;
+    map = L.map('map', { zoomControl: true, attributionControl: true }).setView([35.59, -78.34], 17);
+    layers.sat = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { maxZoom: 20, maxNativeZoom: 19, attribution: 'Imagery © Esri' });
+    layers.topo = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', { maxZoom: 19, maxNativeZoom: 17, attribution: '© OpenStreetMap, SRTM · OpenTopoMap' });
+    layers.sat.addTo(map);
+    grp = L.layerGroup().addTo(map);
+    L.control.scale({ imperial: true, metric: false }).addTo(map);
+  }
+  $('layers').onclick = e => {
+    const b = e.target.closest('button'); if (!b || !map) return;
+    Object.values(layers).forEach(l => map.removeLayer(l)); layers[b.dataset.l].addTo(map);
+    [...$('layers').children].forEach(x => x.classList.toggle('on', x === b));
+  };
+  const icon = cls => L.divIcon({ className: '', html: `<div class="pin ${cls}"></div>`, iconSize: [18, 18], iconAnchor: [9, 9] });
+
+  function drawMap(refit) {
+    if (!map) return;
+    grp.clearLayers();
+    const pts = trail.marks.filter(m => m.lat != null);
+    if (trail.path.length > 1) L.polyline(trail.path.map(p => [p[0], p[1]]), { color: '#46a8ff', weight: 3, opacity: .7, dashArray: '4 6' }).addTo(grp);
+    const bl = pts.filter(m => m.type !== 'lost');
+    if (bl.length > 1) L.polyline(bl.map(m => [m.lat, m.lon]), { color: '#ff2d3d', weight: 3, opacity: .9 }).addTo(grp);
+    pts.forEach((m, i) => {
+      L.marker([m.lat, m.lon], { icon: icon(m.type) }).addTo(grp)
+        .bindPopup(`<b>${LABEL[m.type]}</b><br>${fmtTime(m.t)} · ±${Math.round(m.acc || 0)} m`);
+    });
+    if (pos && !trail.example) {
+      const ll = [pos.lat, pos.lon];
+      L.circle(ll, { radius: pos.acc, color: '#46a8ff', weight: 1, fillOpacity: .08 }).addTo(grp);
+      L.marker(ll, { icon: L.divIcon({ className: '', html: '<div class="me"></div>', iconSize: [22, 22], iconAnchor: [11, 11] }), interactive: false }).addTo(grp);
+    }
+    if (refit || !fitted) fit();
+    $('mapBadge').hidden = !trail.example;
+  }
+  function fit() {
+    if (!map) return;
+    const ll = trail.marks.filter(m => m.lat != null).map(m => [m.lat, m.lon]).concat(trail.path.map(p => [p[0], p[1]]));
+    if (pos && !trail.example) ll.push([pos.lat, pos.lon]);
+    if (ll.length > 1) { map.fitBounds(ll, { padding: [40, 40], maxZoom: 19 }); fitted = true; }
+    else if (ll.length === 1) { map.setView(ll[0], 18); fitted = true; }
+  }
+  $('btnCenter').onclick = fit;
+
+  function stats() {
+    const pts = trail.marks.filter(m => m.lat != null);
+    const hit = pts.find(m => m.type === 'hit');
+    const blood = pts.filter(m => m.type === 'blood' || m.type === 'hit');
+    const here = pos && !trail.example ? [pos.lat, pos.lon] : (pts.length ? [pts[pts.length - 1].lat, pts[pts.length - 1].lon] : null);
+    $('dHit').textContent = hit && here ? fmtYd(dist([hit.lat, hit.lon], here)) + ' ' + bearing([hit.lat, hit.lon], here) : '—';
+    let L_ = 0; for (let i = 1; i < blood.length; i++) L_ += dist([blood[i - 1].lat, blood[i - 1].lon], [blood[i].lat, blood[i].lon]);
+    $('dTrail').textContent = blood.length > 1 ? fmtYd(L_) : '—';
+    const lastB = [...trail.marks].reverse().find(m => m.type === 'blood');
+    $('dLast').textContent = lastB ? (trail.example ? fmtTime(lastB.t) : fmtAgo(lastB.t)) : '—';
+  }
+
+  function renderList() {
+    const ol = $('list'); ol.textContent = '';
+    const hit = trail.marks.find(m => m.type === 'hit' && m.lat != null);
+    trail.marks.forEach(m => {
+      const li = document.createElement('li');
+      const d = document.createElement('span'); d.className = 'dot ' + m.type;
+      const t = document.createElement('span'); t.className = 't'; t.textContent = `${LABEL[m.type]} · ${fmtTime(m.t)}`;
+      const c = document.createElement('span'); c.className = 'c';
+      if (m.lat == null) c.textContent = 'no GPS';
+      else if (hit && m !== hit) c.textContent = fmtYd(dist([hit.lat, hit.lon], [m.lat, m.lon])) + ' from hit';
+      else c.textContent = `${m.lat.toFixed(5)}, ${m.lon.toFixed(5)}`;
+      li.append(d, t, c); ol.prepend(li);
+    });
+    $('emptyMsg').hidden = trail.marks.length > 0;
+  }
+  function renderAll(refit) { renderList(); stats(); drawMap(refit); }
+
+  /* =========================================================
+     GPX EXPORT (opens in onX, Google Earth, Gaia, etc.)
+     ========================================================= */
+  function gpx() {
+    const esc = s => String(s).replace(/[<>&"]/g, c => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;' }[c]));
+    const iso = t => new Date(t).toISOString();
+    let s = '<?xml version="1.0" encoding="UTF-8"?>\n<gpx version="1.1" creator="Blood Trail Lens" xmlns="http://www.topografix.com/GPX/1/1">\n';
+    trail.marks.filter(m => m.lat != null).forEach((m, i) => {
+      s += `  <wpt lat="${m.lat.toFixed(7)}" lon="${m.lon.toFixed(7)}"><time>${iso(m.t)}</time><name>${esc(LABEL[m.type] + ' ' + (i + 1))}</name><sym>${m.type === 'hit' ? 'Flag, Red' : 'Pin, Red'}</sym></wpt>\n`;
+    });
+    if (trail.path.length > 1) {
+      s += '  <trk><name>Walked path</name><trkseg>\n';
+      trail.path.forEach(p => s += `    <trkpt lat="${p[0].toFixed(7)}" lon="${p[1].toFixed(7)}"><time>${iso(p[2])}</time></trkpt>\n`);
+      s += '  </trkseg></trk>\n';
+    }
+    return s + '</gpx>\n';
+  }
+  function msg(t) { $('gpxMsg').textContent = t; $('gpxMsg').hidden = false; }
+  $('btnGpx').onclick = async () => {
+    if (!trail.marks.some(m => m.lat != null)) { msg('No marks with GPS yet. Start tracking, then mark blood.'); return; }
+    const name = 'blood-trail-' + new Date().toISOString().slice(0, 16).replace(/[:T]/g, '-') + '.gpx';
+    const data = gpx();
+    try {
+      const dl = window.claude && window.claude.use ? await window.claude.use('downloads') : null;
+      if (dl) { await dl.save({ filename: name, data }); msg('Saved ' + name); return; }
+    } catch (e) { if (e && e.code === 'cancelled') return; }
+    try {
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(new Blob([data], { type: 'application/gpx+xml' }));
+      a.download = name; document.body.appendChild(a); a.click(); a.remove();
+      msg('Saved ' + name + '. Import it into onX, Gaia or Google Earth.');
+    } catch (e) { msg('This view can’t save files.'); }
+  };
+  $('btnClear').onclick = () => { $('confirmBox').hidden = false; };
+  $('btnClearNo').onclick = () => { $('confirmBox').hidden = true; };
+  $('btnClearYes').onclick = () => { trail = { marks: [], path: [], example: false }; save(); $('confirmBox').hidden = true; fitted = false; renderAll(true); };
+
+  /* =========================================================
+     TABS
+     ========================================================= */
+  function show(which) {
+    const scan = which === 'scan';
+    $('paneScan').hidden = !scan; $('paneMap').hidden = scan;
+    $('paneMap').style.display = scan ? '' : 'flex';
+    $('tabScan').classList.toggle('on', scan); $('tabMap').classList.toggle('on', !scan);
+    if (!scan) {
+      initMap();
+      if (!window.L) { $('mapBadge').hidden = false; $('mapBadge').textContent = 'MAP LIBRARY DIDN’T LOAD — CHECK SIGNAL'; }
+      setTimeout(() => { if (map) { map.invalidateSize(); drawMap(!fitted); } }, 60);
+      if (watchId === null && !pos && !trail.example) startWatch();
+    }
+  }
+  $('tabScan').onclick = () => show('scan');
+  $('tabMap').onclick = () => show('map');
+
+  /* =========================================================
+     BLOOD FILTER (scan tab)
+     ========================================================= */
+  const out = $('out');
+  const ctx = out.getContext('2d', { willReadFrequently: true });
+  const work = document.createElement('canvas');
+  const wctx = work.getContext('2d', { willReadFrequently: true });
+  const st = { sens: 5, pal: 'blue', src: null, kind: 'sample', frozen: false, stream: null, track: null, torch: false, lastHit: 0 };
+
+  function params() {
+    const s = st.sens;
+    return { hueMax: 6 + s * 1.6, satMin: 0.68 - s * 0.035, valMin: 46 - s * 2.6, ratio: 1.9 - s * 0.06 };
+  }
+  const PAL = { blue: [0.10, 0.20, 1.05], green: [0.12, 0.95, 0.25], gray: [0.55, 0.55, 0.60] };
+
+  function process(w, h) {
+    const img = wctx.getImageData(0, 0, w, h);
+    const d = img.data, p = params(), pal = PAL[st.pal];
+    let hits = 0;
+    for (let i = 0; i < d.length; i += 4) {
+      const r = d[i], g = d[i + 1], b = d[i + 2];
+      const mx = r > g ? (r > b ? r : b) : (g > b ? g : b);
+      const mn = r < g ? (r < b ? r : b) : (g < b ? g : b);
+      const c = mx - mn;
+      let blood = false;
+      if (mx === r && c > 0 && mx >= p.valMin && c / mx >= p.satMin && r >= g * p.ratio) {
+        let hue = 60 * ((g - b) / c); if (hue < 0) hue = -hue;
+        blood = hue <= p.hueMax;
+      }
+      if (blood) { hits++; d[i] = 255; d[i + 1] = 20; d[i + 2] = 45; }
+      else if (pal) {
+        const L_ = (0.3 * r + 0.59 * g + 0.11 * b) * 0.42;
+        d[i] = L_ * pal[0]; d[i + 1] = L_ * pal[1]; d[i + 2] = Math.min(255, L_ * pal[2]);
+      }
+    }
+    ctx.putImageData(img, 0, 0);
+    $('hit').textContent = hits.toLocaleString();
+    $('cov').textContent = (hits / (w * h) * 100).toFixed(2) + '%';
+    const found = hits > Math.max(8, w * h * 0.00004);
+    $('alert').hidden = !found; $('cHit').classList.toggle('hot', found);
+    if (found && !st.lastHit && navigator.vibrate) { try { navigator.vibrate(60); } catch (e) {} }
+    st.lastHit = found ? 1 : 0;
+  }
+  function draw(source, sw, sh, maxW) {
+    const sc = Math.min(1, maxW / sw), w = Math.round(sw * sc), h = Math.round(sh * sc);
+    if (work.width !== w || work.height !== h) { work.width = out.width = w; work.height = out.height = h; }
+    wctx.drawImage(source, 0, 0, w, h); process(w, h);
+  }
+  function redrawStill() { if (st.src && st.kind !== 'live' && st.kind !== 'video') draw(st.src, st.src.width, st.src.height, 1100); }
+
+  function makeSample() {
+    const c = document.createElement('canvas'); c.width = 600; c.height = 800;
+    const x = c.getContext('2d');
+    let seed = 7; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+    x.fillStyle = '#3b2f22'; x.fillRect(0, 0, 600, 800);
+    const browns = ['#6b4a2b', '#8a6038', '#a77b46', '#5a4630', '#7d6a45', '#4c3a26', '#9c8350', '#b48a52', '#5f5a3a'];
+    for (let n = 0; n < 900; n++) {
+      x.save(); x.translate(rnd() * 600, rnd() * 800); x.rotate(rnd() * 6.28);
+      x.fillStyle = browns[(rnd() * browns.length) | 0];
+      const L_ = 18 + rnd() * 34; x.beginPath(); x.ellipse(0, 0, L_, L_ * 0.45, 0, 0, 6.28); x.fill();
+      x.strokeStyle = 'rgba(30,20,10,.5)'; x.lineWidth = 1; x.beginPath(); x.moveTo(-L_, 0); x.lineTo(L_, 0); x.stroke();
+      x.restore();
+    }
+    x.strokeStyle = '#4a3b2a'; x.lineWidth = 26; x.lineCap = 'round';
+    x.beginPath(); x.moveTo(-20, 560); x.quadraticCurveTo(300, 470, 640, 520); x.stroke();
+    [[310, 300, 9], [282, 352, 5], [345, 420, 7], [250, 470, 4], [300, 610, 6], [420, 660, 3]].forEach(([cx, cy, r], k) => {
+      x.fillStyle = k % 2 ? '#7a0f12' : '#a3141a';
+      x.beginPath(); x.ellipse(cx, cy, r * 1.4, r, rnd(), 0, 6.28); x.fill();
+      x.beginPath(); x.arc(cx + r * 2, cy + r, r * 0.4, 0, 6.28); x.fill();
+    });
+    return c;
+  }
+
+  let raf = 0;
+  const video = document.createElement('video'); video.playsInline = true; video.muted = true;
+  const fvid = document.createElement('video'); fvid.playsInline = true; fvid.muted = true; fvid.loop = true;
+  const setMode = t => { $('modeLbl').textContent = t; };
+
+  function stopLive() {
+    cancelAnimationFrame(raf);
+    if (st.stream) st.stream.getTracks().forEach(t => t.stop());
+    st.stream = null; st.track = null; st.torch = false;
+    $('btnLive').classList.remove('on'); $('btnTorch').disabled = true; $('btnTorch').classList.remove('on');
+  }
+  function stopVideoFile() { cancelAnimationFrame(raf); fvid.pause(); if (fvid.src) { URL.revokeObjectURL(fvid.src); fvid.removeAttribute('src'); } }
+  function loop() { if (!st.frozen && video.readyState >= 2 && video.videoWidth) draw(video, video.videoWidth, video.videoHeight, 480); raf = requestAnimationFrame(loop); }
+  function vloop() { if (!st.frozen && fvid.readyState >= 2) draw(fvid, fvid.videoWidth, fvid.videoHeight, 540); raf = requestAnimationFrame(vloop); }
+
+  async function startLive() {
+    if (st.kind === 'live') { stopLive(); setMode('Off'); st.kind = 'idle'; return; }
+    stopVideoFile();
+    try {
+      const s = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 } }, audio: false });
+      st.stream = s; st.track = s.getVideoTracks()[0];
+      video.srcObject = s; await video.play();
+      st.kind = 'live'; st.frozen = false; $('btnFreeze').classList.remove('on'); $('btnFreeze').textContent = 'Freeze';
+      $('btnLive').classList.add('on'); setMode('Live'); $('badge').hidden = true;
+      const caps = st.track.getCapabilities ? st.track.getCapabilities() : {};
+      $('btnTorch').disabled = !caps.torch;
+      loop();
+    } catch (e) {
+      setMode('Blocked');
+      $('note').textContent = 'Live camera isn’t available in this view. Use Photo to snap a shot with your camera, or Video to scan a clip you recorded. Live mode works when this page is opened directly in Safari or Chrome.';
+    }
+  }
+  $('btnLive').onclick = startLive;
+  $('btnTorch').onclick = async () => {
+    if (!st.track) return; st.torch = !st.torch;
+    try { await st.track.applyConstraints({ advanced: [{ torch: st.torch }] }); $('btnTorch').classList.toggle('on', st.torch); }
+    catch (e) { st.torch = false; $('btnTorch').disabled = true; }
+  };
+  $('inPhoto').addEventListener('change', e => {
+    const f = e.target.files[0]; if (!f) return;
+    stopLive(); stopVideoFile();
+    const im = new Image();
+    im.onload = () => {
+      const c = document.createElement('canvas'); c.width = im.naturalWidth; c.height = im.naturalHeight;
+      c.getContext('2d').drawImage(im, 0, 0);
+      st.src = c; st.kind = 'photo'; setMode('Photo'); $('badge').hidden = true; redrawStill(); URL.revokeObjectURL(im.src);
+    };
+    im.src = URL.createObjectURL(f); e.target.value = '';
+  });
+  $('inVideo').addEventListener('change', async e => {
+    const f = e.target.files[0]; if (!f) return;
+    stopLive(); stopVideoFile();
+    fvid.src = URL.createObjectURL(f);
+    try { await fvid.play(); } catch (err) {}
+    st.kind = 'video'; st.frozen = false; $('btnFreeze').classList.remove('on'); $('btnFreeze').textContent = 'Freeze';
+    setMode('Video'); $('badge').hidden = true; vloop(); e.target.value = '';
+  });
+  $('btnFreeze').onclick = () => {
+    st.frozen = !st.frozen; $('btnFreeze').classList.toggle('on', st.frozen);
+    $('btnFreeze').textContent = st.frozen ? 'Resume' : 'Freeze';
+    if (st.kind === 'video') st.frozen ? fvid.pause() : fvid.play();
+  };
+  $('sens').oninput = e => { st.sens = +e.target.value; $('sensV').textContent = st.sens; redrawStill(); };
+  $('chips').onclick = e => {
+    const b = e.target.closest('button'); if (!b) return;
+    st.pal = b.dataset.p === 'off' ? null : b.dataset.p;
+    [...$('chips').children].forEach(x => x.classList.toggle('on', x === b));
+    redrawStill();
+  };
+
+  try { navigator.wakeLock && navigator.wakeLock.request('screen').catch(() => {}); } catch (e) {}
+
+  st.src = makeSample(); redrawStill(); renderAll(false);
+  if (location.hash === '#map') show('map');
+})();
+</script>
+
+</body></html>
